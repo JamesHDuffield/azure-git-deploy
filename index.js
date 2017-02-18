@@ -14,7 +14,7 @@ if (!checkFile(FILENAME_CONFIG)) {
     return 1;
 };
 
-var config = require(FILENAME_CONFIG);
+var config = JSON.parse(fs.readFileSync(FILENAME_CONFIG, 'utf8'));
 
 var DIR_BUILD = getConfigValue(config, 'buildDirectory', true);
 var DIR_STAGING = getConfigValue(config, 'stagingDirectory', true);
