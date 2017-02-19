@@ -75,7 +75,7 @@ console.log();
 console.log('### syncing changes (build -> staging)');
 var rsyncSource = DIR_BUILD  + '/';
 var rsyncTarget = DIR_STAGING;
-exec(`rsync -avvq "${rsyncSource}" "${rsyncTarget}"`, DIR_STAGING);
+exec(`rsync -avvq --delete "${rsyncSource}" "${rsyncTarget}"`, DIR_STAGING);
 console.log();
 
 // Add, commit & push changes
