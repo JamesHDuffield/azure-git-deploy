@@ -64,10 +64,10 @@ if (checkDirectory(DIR_STAGING)) {
 //Update existing Git - or get new Git repository
 if (checkDirectory(path.join(DIR_STAGING, '.git'))) {
     console.log(`### Git updating from ${GIT}`);
-    exec('git pull', DIR_STAGING);
+    execInStaging('git pull');
 } else {
     console.log(`### Git getting fresh clone from ${GIT}`);
-    exec(`git clone ${GIT} .`, DIR_STAGING);
+    execInStaging(`git clone ${GIT} .`);
 };
 console.log();
 
@@ -75,14 +75,14 @@ console.log();
 console.log('### syncing changes (build -> staging)');
 var rsyncSource = DIR_BUILD  + '/';
 var rsyncTarget = DIR_STAGING;
-exec(`rsync -avvq --delete --exclude ".git" "${rsyncSource}" "${rsyncTarget}"`, DIR_STAGING);
+execInStaging(`rsync -avvq --delete --exclude ".git" "${rsyncSource}" "${rsyncTarget}"`);
 console.log();
 
 // Add, commit & push changes
 console.log('### Git adding changes');
-var diff = exec('git status --porcelain', DIR_STAGING, true);
+var diff = execInStaging('git status --porcelain', true);
 if (diff) {
-    exec('git add -A', DIR_STAGING);
+    execInStaging('git add -A', DIR_STAGING);
 } else {
     console.log('No changes found to add');
 };
@@ -90,7 +90,7 @@ console.log();
 
 
 console.log('### Git commiting changes');
-var diffCached = exec('git diff --cached', DIR_STAGING, true);
+var diffCached = execInStaging('git diff --cached', true);
 if (!diffCached) {
     console.log('Found nothing to commit, exit');
     console.log();
@@ -99,11 +99,11 @@ if (!diffCached) {
 var USER=process.env.USER;
 //TODO: get datetime & add to commit message
 var commitMsg = 'deployscript ' + USER;
-exec(`git commit -m "${commitMsg}"`, DIR_STAGING);
+execInStaging(`git commit -m "${commitMsg}"`);
 console.log();
 
 console.log('### Git pusning changes');
-exec('git push', DIR_STAGING);
+execInStaging('git push');
 console.log();
 
 // Check if site ok
@@ -127,7 +127,7 @@ function checkDirectory(dir) {
         return stat.isDirectory();
     } catch (error) {
         return false;
-    }
+    };
 };
 
 function checkFile(file) {
@@ -147,15 +147,18 @@ function getConfigValue(config, property, required) {
     return result;
 };
 
-function exec(cmdLine, workingDir, captureOutput) {
-    if (!checkDirectory(workingDir)) {
-        throw new Error(`Error: workingDir (${workingDir}) for exec not found`);
-    }
+function execInStaging(cmdLine, captureOutput) {
     console.log('exec: ' + cmdLine);
+    //Extra safety, the staging directory should have it's own GIT repository
+    if (!checkDirectory(path.join(DIR_STAGING, '.git'))) {
+        //If a GIT repository is not found the only allowed command is "git clone ....."
+        if (cmdLine.indexOf('git clone') !== 0) {
+            throw new Error('Error: the staging directory doesn\'t contain a GIT repository. Tip: just delete the staging directory & run again.');
+        };
+    };
     if (captureOutput) {
-        return child_process.execSync(cmdLine, {cwd: workingDir}).toString().trim();
+        return child_process.execSync(cmdLine, {cwd: DIR_STAGING}).toString().trim();
     } else {
-        return child_process.execSync(cmdLine, {cwd: workingDir, stdio:[0,1,2]});
-    }
-
+        return child_process.execSync(cmdLine, {cwd: DIR_STAGING, stdio:[0,1,2]});
+    };
 }
