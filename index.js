@@ -24,7 +24,7 @@ var AZURE_DEPLOYMENT_PASSWORD = getConfigValue(config, 'azureDeploymentPassword'
 var GIT = `https://${AZURE_DEPLOYMENT_USERNAME}:${AZURE_DEPLOYMENT_PASSWORD}@${AZURE_SITENAME}.scm.azurewebsites.net:443/${AZURE_SITENAME}.git`;
 var CHECK_URL=getConfigValue(config, 'azureSiteTestUrl', false);
 
-//Check if Git commandline available
+//Check if Git commandline is available
 try {
     child_process.execSync('which git');
 } catch (error) {    
@@ -32,7 +32,7 @@ try {
     return 1;
 };
 
-//Check if Rsync commandline available
+//Check if Rsync commandline is available
 try {
     child_process.execSync('which rsync');
 } catch (error) {    
@@ -46,6 +46,10 @@ if (!checkDirectory(DIR_BUILD)) {
     return 1;
 };
 
+//Resolve full paths
+DIR_BUILD=path.resolve(DIR_BUILD);
+DIR_STAGING=path.resolve(DIR_STAGING);
+
 //Check/create staging
 if (checkDirectory(DIR_STAGING)) {
     var d = path.join(DIR_STAGING, '.git');
@@ -57,17 +61,13 @@ if (checkDirectory(DIR_STAGING)) {
     fs.mkdirSync(DIR_STAGING);
 };
 
-DIR_BUILD=path.resolve(DIR_BUILD);
-DIR_STAGING=path.resolve(DIR_STAGING);
-
 //Update existing Git - or get new Git repository
 if (checkDirectory(path.join(DIR_STAGING, '.git'))) {
-    console.log('### Git updating from ' + GIT);
-    child_process.execSync('git pull', {cwd: DIR_STAGING, stdio:[0,1,2]});
     console.log(`### Git updating from ${GIT}`);
+    exec('git pull', DIR_STAGING);
 } else {
-    child_process.execSync('git clone ' + GIT  + ' .', {cwd: DIR_STAGING, stdio:[0,1,2]});
     console.log(`### Git getting fresh clone from ${GIT}`);
+    exec(`git clone ${GIT} .`, DIR_STAGING);
 };
 console.log();
 
@@ -80,8 +80,9 @@ console.log();
 
 // Add, commit & push changes
 console.log('### Git adding changes');
-if (child_process.execSync('git diff', {cwd: DIR_STAGING}).toString().trim()) {
-    child_process.execSync('git add -A', {cwd: DIR_STAGING, stdio:[0,1,2]});
+var diff = exec('git status --porcelain', DIR_STAGING, true);
+if (diff) {
+    exec('git add -A', DIR_STAGING);
 } else {
     console.log('No changes found to add');
 };
@@ -89,8 +90,10 @@ console.log();
 
 
 console.log('### Git commiting changes');
-if (!child_process.execSync('git diff --cached', {cwd: DIR_STAGING}).toString().trim()) {
+var diffCached = exec('git diff --cached', DIR_STAGING, true);
+if (!diffCached) {
     console.log('Found nothing to commit, exit');
+    console.log();
     return 0;
 };
 var USER=process.env.USER;
@@ -100,7 +103,7 @@ exec(`git commit -m "${commitMsg}"`, DIR_STAGING);
 console.log();
 
 console.log('### Git pusning changes');
-child_process.execSync('git push', {cwd: DIR_STAGING, stdio:[0,1,2]});
+exec('git push', DIR_STAGING);
 console.log();
 
 // Check if site ok
@@ -139,7 +142,20 @@ function checkFile(file) {
 function getConfigValue(config, property, required) {
     var result = config[property];
     if (required && (!result || typeof result !== 'string')) {
-        throw new Error('Error: config file doesn\'t contain value for "' + property + '"');
+        throw new Error(`Error: config file doesn\'t contain value for "${property}"`);
     };
     return result;
 };
+
+function exec(cmdLine, workingDir, captureOutput) {
+    if (!checkDirectory(workingDir)) {
+        throw new Error(`Error: workingDir (${workingDir}) for exec not found`);
+    }
+    console.log('exec: ' + cmdLine);
+    if (captureOutput) {
+        return child_process.execSync(cmdLine, {cwd: workingDir}).toString().trim();
+    } else {
+        return child_process.execSync(cmdLine, {cwd: workingDir, stdio:[0,1,2]});
+    }
+
+}
