@@ -10,7 +10,7 @@ var request = require('request');
 var FILENAME_CONFIG = './azure-git-deploy.json';
 
 if (!checkFile(FILENAME_CONFIG)) {
-    console.log('Error: config file (' + FILENAME_CONFIG + ') not found.');
+    console.log(`Error: config file (${FILENAME_CONFIG}) not found.`);
     return 1;
 };
 
@@ -21,7 +21,7 @@ var DIR_STAGING = getConfigValue(config, 'stagingDirectory', true);
 var AZURE_SITENAME = getConfigValue(config, 'azureSiteName', true);
 var AZURE_DEPLOYMENT_USERNAME = getConfigValue(config, 'azureDeploymentUsername', true);
 var AZURE_DEPLOYMENT_PASSWORD = getConfigValue(config, 'azureDeploymentPassword', true);
-var GIT = 'https://' + AZURE_DEPLOYMENT_USERNAME + ':' + AZURE_DEPLOYMENT_PASSWORD + '@' + AZURE_SITENAME + '.scm.azurewebsites.net:443/' + AZURE_SITENAME + '.git';
+var GIT = `https://${AZURE_DEPLOYMENT_USERNAME}:${AZURE_DEPLOYMENT_PASSWORD}@${AZURE_SITENAME}.scm.azurewebsites.net:443/${AZURE_SITENAME}.git`;
 var CHECK_URL=getConfigValue(config, 'azureSiteTestUrl', false);
 
 //Check if Git commandline available
@@ -42,7 +42,7 @@ try {
 
 //Check if we have a build directory
 if (!checkDirectory(DIR_BUILD)) {
-    console.log('Error: Build directory (' + DIR_BUILD + ') not found.');
+    console.log(`Error: Build directory (${DIR_BUILD}) not found.`);
     return 1;
 };
 
@@ -50,7 +50,7 @@ if (!checkDirectory(DIR_BUILD)) {
 if (checkDirectory(DIR_STAGING)) {
     var d = path.join(DIR_STAGING, '.git');
     if (!checkDirectory(path.join(DIR_STAGING, '.git'))) {
-        console.log('Error: Staging directory (' + DIR_STAGING + ') exists but doesn\'t contain a Git repository. Tip: just delete the staging directory & run again.');
+        console.log(`Error: Staging directory (${DIR_STAGING}) exists but doesn\'t contain a Git repository. Tip: just delete the staging directory & run again.`);
         return 1;
     };
 } else {
@@ -64,15 +64,18 @@ DIR_STAGING=path.resolve(DIR_STAGING);
 if (checkDirectory(path.join(DIR_STAGING, '.git'))) {
     console.log('### Git updating from ' + GIT);
     child_process.execSync('git pull', {cwd: DIR_STAGING, stdio:[0,1,2]});
+    console.log(`### Git updating from ${GIT}`);
 } else {
-    console.log('### Git getting fresh clone from ' + GIT);
     child_process.execSync('git clone ' + GIT  + ' .', {cwd: DIR_STAGING, stdio:[0,1,2]});
+    console.log(`### Git getting fresh clone from ${GIT}`);
 };
 console.log();
 
 // Sync dist -> staging
 console.log('### syncing changes (build -> staging)');
-child_process.execSync('rsync -avvq ' + DIR_BUILD  + '/ ' + DIR_STAGING, {cwd: DIR_STAGING, stdio:[0,1,2]});
+var rsyncSource = DIR_BUILD  + '/';
+var rsyncTarget = DIR_STAGING;
+exec(`rsync -avvq "${rsyncSource}" "${rsyncTarget}"`, DIR_STAGING);
 console.log();
 
 // Add, commit & push changes
@@ -93,8 +96,8 @@ if (!child_process.execSync('git diff --cached', {cwd: DIR_STAGING}).toString().
 var USER=process.env.USER;
 //TODO: get datetime & add to commit message
 var commitMsg = 'deployscript ' + USER;
-child_process.execSync('git commit -m "' + commitMsg + '"', {cwd: DIR_STAGING, stdio:[0,1,2]});
-console.log('');
+exec(`git commit -m "${commitMsg}"`, DIR_STAGING);
+console.log();
 
 console.log('### Git pusning changes');
 child_process.execSync('git push', {cwd: DIR_STAGING, stdio:[0,1,2]});
@@ -105,11 +108,11 @@ if (CHECK_URL) {
     console.log('### Waking up & checking site');
     request(CHECK_URL, function (error, response, body) {
         if (error) {
-            console.log('Error: Site retured error (' + error + '), sad times.');
+            console.log(`Error: Site retured error (${error}), sad times.`);
         } else if (response.statusCode == 200) {
             console.log('Site returned response code 200, happy times!');
         } else {
-            console.log('Error: Site retured response !200 (' + response.statusCode + '), sad times.');
+            console.log(`Error: Site retured response !200 (${response.statusCode}), sad times.`);
         };
         console.log();
     });
