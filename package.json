@@ -1,6 +1,6 @@
 {
   "name": "azure-git-deploy",
-  "version": "0.10.3",
+  "version": "0.11.0",
   "description": "Npm module to quickly perform an Azure WebSite/WebApp GIT deployment",
   "main": "",
   "scripts": {
