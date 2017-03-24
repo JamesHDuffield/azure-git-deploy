@@ -1,6 +1,9 @@
 
-# !! DEPRECATED, replaced by: https://github.com/gitdude49/azure-site-deploy !!!
+* !!! DEPRECATED !!!
 
+replaced by: https://github.com/gitdude49/azure-site-deploy !!!
+
+* !!! DEPRECATED !!!
 
 # azure-git-deploy
 Npm module to quickly perform a Git WebSite/WebApp deployment
