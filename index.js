@@ -21,7 +21,8 @@ var DIR_STAGING = getConfigValue(config, 'stagingDirectory', true);
 var AZURE_SITENAME = getConfigValue(config, 'azureSiteName', true);
 var AZURE_DEPLOYMENT_USERNAME = getConfigValue(config, 'azureDeploymentUsername', true);
 var AZURE_DEPLOYMENT_PASSWORD = getConfigValue(config, 'azureDeploymentPassword', true);
-var GIT = `https://${AZURE_DEPLOYMENT_USERNAME}:${AZURE_DEPLOYMENT_PASSWORD}@${AZURE_SITENAME}.scm.azurewebsites.net:443/${AZURE_SITENAME}.git`;
+var DEPLOYMENT_SLOT = getConfigValue(config, 'azureDeploymentSlot', false);
+var GIT = `https://${AZURE_DEPLOYMENT_USERNAME}:${AZURE_DEPLOYMENT_PASSWORD}@${AZURE_SITENAME}${DEPLOYMENT_SLOT ? '-' + DEPLOYMENT_SLOT : ''}.scm.azurewebsites.net:443/${AZURE_SITENAME}.git`;
 var CHECK_URL=getConfigValue(config, 'azureSiteTestUrl', false);
 
 //Check if Git commandline is available
